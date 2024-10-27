@@ -1308,7 +1308,29 @@ end
 
 do
 	local UnitAura = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex or UnitAura
-	function sh.UNIT_AURA(unit)
+	function sh.UNIT_AURA(unit, updateInfo)
+		if updateInfo and not updateInfo.isFullUpdate then
+			if updateInfo.addedAuras then
+				for _, aura in next, updateInfo.addedAuras do
+					local duration = aura.duration
+					local spellId = aura.spellId
+					local isBossAura = aura.isBossAura
+					local name = aura.name
+					if spellId and not hiddenAuraEngageList[spellId] and not hiddenUnitAuraCollector[spellId] and not PLAYER_SPELL_BLOCKLIST[spellId] then
+						if UnitIsVisible(unit) then
+							if isBossAura then
+								hiddenUnitAuraCollector[spellId] = strjoin("#", tostringall("BOSS_DEBUFF", spellId, name, duration, unit, UnitName(unit)))
+							else
+								hiddenUnitAuraCollector[spellId] = strjoin("#", tostringall(spellId, name, duration, unit, UnitName(unit)))
+							end
+						else -- If it's not visible it may not show up in CLEU, use this as an indicator of a false positive
+							hiddenUnitAuraCollector[spellId] = strjoin("#", tostringall("UNIT_NOT_VISIBLE", spellId, name, duration, unit, UnitName(unit)))
+						end
+					end
+				end
+			end
+			return
+		end
 		for i = 1, 100 do
 			local name, _, _, _, duration, _, _, _, _, spellId, _, isBossAura = UnitAura(unit, i, "HARMFUL")
 			if type(name) == "table" then
